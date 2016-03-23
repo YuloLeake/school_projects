@@ -1,0 +1,198 @@
+# WRITTEN BY YULO LEAKE
+#
+# Fall 2015, CSCI 410 (PROGRAMMING LANGUAGE)
+# FINAL LANGUAGE PROJECT - ICON IMPLEMENTATION
+
+link options
+
+global s
+
+$define DEF_DICT "dict"
+
+procedure main(argv)
+    local opt_table, dict_file
+
+    # look for dictionary and puzzler options
+    opt_table := options(argv, "d:f:") 
+
+    # put all words in dictionary into set
+    dict_file := \opt_table["d"] | DEF_DICT
+    d := open(dict_file, r) | stop("Dictionary not found")
+    s := set()
+    while insert(s, read(d))
+
+    # put words in puzzle block
+    puzzle := []
+    if puzz_file := \opt_table["f"] then
+    {
+        p := open(puzz_file, r) | stop("Puzzle file not found")
+        while put(puzzle, read(p))
+    }
+    else
+    {
+        while put(puzzle, read())
+    }
+    permutate(puzzle)
+end
+
+# Generator that checks if chunks from given word is in the dictionary
+# If chunk is found, return the chunk and starting position (adjusted if reversed) 
+procedure gen_checkit(word, rev)
+    p := *word + 2
+    every i:=2 to *word do
+    {
+        word ? while chunk := move(i) do
+        {
+            move(1-i)
+            if rev = 0 then loc1 := &pos - 1 else loc1 := p - &pos
+            if member(s, chunk) then suspend [chunk, loc1]
+        }
+    }
+end
+
+procedure write_out(word, r1, c1, r2, c2)
+    write(word, " ", r1, ",", c1, " ", r2, ",", c2)
+end
+
+# Get all possible lines and call gen_checkit for each line
+procedure permutate(puzzle)
+    h := *puzzle
+    w := *puzzle[1]
+
+    # Do left to right and right to left
+    every r := 1 to h do
+    {
+        word := puzzle[r]
+        every p := gen_checkit(word, 0) do
+        {
+            wo := p[1]
+            st := p[2]; en := st + * wo - 1
+            write_out(wo, r, st, r, en)
+        }
+        every p := gen_checkit(reverse(word), 1) do
+        {
+            wo := p[1]
+            st := p[2]; en := st - * wo + 1
+            write_out(wo, r, st, r, en)
+        }
+    }
+
+    # return if only a single line
+    if h = 1 then return;
+    
+    # Do top to bottom to bottom to top
+    every c := 1 to w do 
+    {
+        word := ""
+        every r := 1 to h do 
+        {
+            word := word || puzzle[r][c]
+        }
+        every p := gen_checkit(word, 0) do
+        {
+            wo := p[1]
+            st := p[2]; en := st + * wo - 1
+            write_out(wo, st, c, en, c)
+        }
+        every p := gen_checkit(reverse(word), 1) do
+        {
+            wo := p[1]
+            st := p[2]; en := st - * wo + 1
+            write_out(wo, st, c, en, c)
+        }
+    }
+
+    # Do Top left to bottom right & top right to bottom left (rows)
+    M := h
+    every r:= 1 to h-1 do
+    {
+        if M > w then m := w else m := M
+        word1 := ""
+        word2 := ""
+        every c := 1 to m do
+        {
+            word1 := word1 || puzzle[r+c-1][c]
+            word2 := word2 || puzzle[r+c-1][w-c+1]
+        } 
+        M := M - 1   
+        every p := gen_checkit(word1, 0) do
+        {
+            wo := p[1]
+            st := p[2];       en := *wo - 1
+            rs := r + st - 1; re := rs + en
+            cs := st;         ce := st + en
+            write_out(wo, rs, cs, re, ce)
+        }
+        every p := gen_checkit(reverse(word1), 1) do
+        {
+            wo := p[1]
+            st := p[2];       en := *wo - 1
+            rs := r + st - 1; re := rs - en
+            cs := st;         ce := st - en
+            write_out(wo, rs, cs, re, ce)
+        }
+        every p := gen_checkit(word2, 0) do
+        {
+            wo := p[1]
+            st := p[2];       en := *wo - 1
+            rs := r + st - 1; re := rs + en
+            cs := w - st + 1; ce := cs - en
+            write_out(wo, rs, cs, re, ce)
+        }
+        every p := gen_checkit(reverse(word2), 1) do
+        {
+            wo := p[1]
+            st := p[2];       en := *wo - 1
+            rs := r + st - 1; re := rs - en
+            cs := w - st + 1; ce := cs + en
+            write_out(wo, rs, cs, re, ce)
+        }
+    }
+
+    # Do Top left to bottom right & top right to bottom left (columns)
+    M := w-1
+    every c:= 2 to (w - 1) do
+    {
+        if M > h then m := h else m := M
+        word1 := ""
+        word2 := ""
+        every r := 1 to m do
+        {
+            word1 := word1 || puzzle[r][c+r-1]
+            word2 := word2 || puzzle[r][w-c-r+2]
+        }
+        M := M - 1
+        every p := gen_checkit(word1, 0) do
+        {
+            wo := p[1]
+            st := p[2];       en := *wo - 1
+            rs := st;         re := st + en
+            cs := c + st - 1; ce := cs + en
+            write_out(wo, rs, cs, re, ce)
+        }
+        every p := gen_checkit(reverse(word1), 1) do
+        {
+            wo := p[1]
+            st := p[2];       en := *wo - 1
+            rs := st;         re := st - en
+            cs := c + st - 1; ce := cs - en
+            write_out(wo, rs, cs, re, ce)
+        }
+        every p := gen_checkit(word2, 0) do
+        {
+            wo := p[1]
+            st := p[2];       en := *wo - 1
+            rs := st;         re := st + en
+            cs := w-st-c+2;   ce := cs - en
+            write_out(wo, rs, cs, re, ce)
+        }
+        every p := gen_checkit(reverse(word2), 1) do
+        {
+            wo := p[1]
+            st := p[2];       en := *wo - 1
+            rs := st;         re := st - en
+            cs := w-st-c+2;   ce := cs + en
+            write_out(wo, rs, cs, re, ce)
+        }
+    }
+end

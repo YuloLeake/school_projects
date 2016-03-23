@@ -1,1 +1,1 @@
-# school_work
+Selected school projects are collected in here. 
